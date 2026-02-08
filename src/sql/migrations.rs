@@ -65,14 +65,16 @@ mod tests {
     #[cfg(feature = "upcasting")]
     impl crate::event::Upcaster for TestEvent {}
 
+    #[async_trait::async_trait]
     impl Aggregate for TestAggregate {
         const NAME: &'static str = "test";
         type State = ();
         type Command = ();
         type Event = TestEvent;
         type Error = Error;
+        type Services = ();
 
-        fn handle_command(_state: &Self::State, _command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+        async fn handle_command(_state: &Self::State, _command: Self::Command, _services: &Self::Services) -> Result<Vec<Self::Event>, Self::Error> {
             Ok(vec![])
         }
 

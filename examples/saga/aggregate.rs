@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use async_trait::async_trait;
 use esrs::Aggregate;
 
 use crate::common::CommonError;
@@ -7,14 +8,16 @@ use crate::common::CommonError;
 #[derive(Clone)]
 pub struct SagaAggregate;
 
+#[async_trait]
 impl Aggregate for SagaAggregate {
     const NAME: &'static str = "saga";
     type State = ();
     type Command = SagaCommand;
     type Event = SagaEvent;
     type Error = CommonError;
+    type Services = ();
 
-    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+    async fn handle_command(_state: &Self::State, command: Self::Command, _services: &Self::Services) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             SagaCommand::RequestMutation => Ok(vec![SagaEvent::MutationRequested]),
             SagaCommand::RegisterMutation => Ok(vec![SagaEvent::MutationRegistered]),

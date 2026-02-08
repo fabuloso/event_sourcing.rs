@@ -40,14 +40,16 @@ async fn main() {
 
 pub struct Book;
 
+#[async_trait::async_trait]
 impl Aggregate for Book {
     const NAME: &'static str = "book";
     type State = BookState;
     type Command = BookCommand;
     type Event = BookEvent;
     type Error = BookError;
+    type Services = ();
 
-    fn handle_command(state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+    async fn handle_command(state: &Self::State, command: Self::Command, _services: &Self::Services) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             BookCommand::Buy { num_of_copies } if state.leftover < num_of_copies => Err(BookError::NotEnoughCopies),
             BookCommand::Buy { num_of_copies } => Ok(vec![BookEvent::Bought { num_of_copies }]),

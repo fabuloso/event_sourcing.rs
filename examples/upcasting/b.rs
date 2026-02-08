@@ -90,14 +90,16 @@ impl Upcaster for Event20230405 {
 /// This is the `Aggregate` where we use the `EventB`, with a versioned-event upcasting approach
 pub struct AggregateB;
 
+#[async_trait::async_trait]
 impl Aggregate for AggregateB {
     const NAME: &'static str = "upsert_b";
     type State = ();
     type Command = Command;
     type Event = Event;
     type Error = Error;
+    type Services = ();
 
-    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+    async fn handle_command(_state: &Self::State, command: Self::Command, _services: &Self::Services) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             Self::Command::Increment { u } => Ok(vec![Self::Event::Incremented(IncPayload { u })]),
             Self::Command::Decrement { u } => Ok(vec![Self::Event::Decremented(DecPayload { u })]),

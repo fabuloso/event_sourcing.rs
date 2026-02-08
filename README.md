@@ -69,6 +69,7 @@ Implement your own aggregate:
 ```rust
 pub struct Book;
 
+#[async_trait::async_trait]
 impl Aggregate for Book {
     ...
 }
@@ -85,8 +86,9 @@ aggregate instance.
 - `type Event`: is a representation of a significant state change or an occurrence that has happened to a specific aggregate
 instance. Aggregate events are at the core of event sourcing as they capture all the changes made to an aggregate over time.
 - `type Error`: is a representation of every validation failure that can occur while trying to handle a command.
+- `type Services`: external services (collaborators) that the aggregate can use during command handling. Set to `()` for aggregates that do not require any services.
 
-- `fn handle_command`: is responsible for processing and validating incoming commands and emitting corresponding events.
+- `async fn handle_command`: is responsible for processing and validating incoming commands and emitting corresponding events. It accepts a reference to the aggregate's services (collaborators) for interacting with external systems.
 - `fn apply_event`: this function is responsible for processing individual events, or replaying batch of events, and 
 applying their effects on the `Aggregate`'s state.
 
@@ -157,14 +159,16 @@ And now let's put all together in the `Aggregate`, implementing `handle_command`
 ```rust
 ...
 
+#[async_trait::async_trait]
 impl Aggregate for Book {
     const NAME: &'static str = "book";
     type State = BookState;
     type Command = BookCommand;
     type Event = BookEvent;
     type Error = BookError;
+    type Services = ();
 
-    fn handle_command(state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+    async fn handle_command(state: &Self::State, command: Self::Command, _services: &Self::Services) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             BookCommand::Buy { num_of_copies } if state.leftover < num_of_copies => Err(BookError::NotEnoughCopies),
             BookCommand::Buy { num_of_copies } => Ok(vec![BookEvent::Bought { num_of_copies }]),

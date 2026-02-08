@@ -1,20 +1,23 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use async_trait::async_trait;
 use esrs::Aggregate;
 
 use crate::common::CommonError;
 
 pub struct AggregateB;
 
+#[async_trait]
 impl Aggregate for AggregateB {
     const NAME: &'static str = "b";
     type State = i32;
     type Command = CommandB;
     type Event = EventB;
     type Error = CommonError;
+    type Services = ();
 
-    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+    async fn handle_command(_state: &Self::State, command: Self::Command, _services: &Self::Services) -> Result<Vec<Self::Event>, Self::Error> {
         Ok(vec![EventB {
             shared_id: command.shared_id,
             v: command.v,

@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 /// The Aggregate trait is responsible for validating commands, mapping commands to events, and applying
 /// events onto the state.
 ///
@@ -5,9 +7,13 @@
 /// event stream. Applying the same events, in the same order, to the same aggregate, should always yield an
 /// identical aggregate state.
 ///
-/// This trait is purposefully _synchronous_. If you are implementing this trait, your aggregate
-/// should not have any side effects. If you need additional information to handle commands correctly, then
-/// consider looking up that information and placing it in the command.
+/// The `handle_command` method is _asynchronous_ and accepts a reference to the aggregate's collaborating
+/// services. Services are external dependencies (e.g. payment gateways, email providers) that the aggregate
+/// can use during command handling. For aggregates that do not require any services, the `Services` associated
+/// type defaults to `()`.
+///
+/// The `apply_event` method remains _synchronous_ and must have no side effects.
+#[async_trait]
 pub trait Aggregate {
     /// The `NAME` const is responsible for naming an aggregate type.
     /// Each aggregate type should have a name that is unique among all the aggregate types in your application.
@@ -32,13 +38,22 @@ pub trait Aggregate {
     /// This associated type is used to get domain errors while handling a command.
     type Error: std::error::Error;
 
-    /// Handles, validate a command and emits events.
+    /// External services (collaborators) that the aggregate can use during command handling.
+    /// Set to `()` for aggregates that do not require any services.
+    type Services: Send + Sync;
+
+    /// Handles, validate a command and emits events. This method can use the provided `services`
+    /// to interact with external systems (e.g. payment gateways, email providers).
     ///
     /// # Errors
     ///
     /// Will return `Err` if the user of this library set up command validations. Every error here
     /// could be just a "domain error". No technical errors.
-    fn handle_command(state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error>;
+    async fn handle_command(
+        state: &Self::State,
+        command: Self::Command,
+        services: &Self::Services,
+    ) -> Result<Vec<Self::Event>, Self::Error>;
 
     /// Updates the aggregate state using the new event. This assumes that the event can be correctly applied
     /// to the state.

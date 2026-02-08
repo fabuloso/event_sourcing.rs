@@ -19,15 +19,36 @@ where
     E: EventStore,
 {
     event_store: E,
+    services: <E::Aggregate as Aggregate>::Services,
+}
+
+impl<E> AggregateManager<E>
+where
+    E: EventStore,
+    <E::Aggregate as Aggregate>::Services: Default,
+{
+    /// Creates a new instance of an [`AggregateManager`].
+    ///
+    /// This constructor is available when the aggregate's `Services` type implements `Default`
+    /// (which includes `()` for aggregates without services).
+    pub fn new(event_store: E) -> Self {
+        Self {
+            event_store,
+            services: Default::default(),
+        }
+    }
 }
 
 impl<E> AggregateManager<E>
 where
     E: EventStore,
 {
-    /// Creates a new instance of an [`AggregateManager`].
-    pub fn new(event_store: E) -> Self {
-        Self { event_store }
+    /// Creates a new instance of an [`AggregateManager`] with the given services.
+    ///
+    /// Use this constructor when the aggregate requires external services (collaborators)
+    /// for command handling.
+    pub fn with_services(event_store: E, services: <E::Aggregate as Aggregate>::Services) -> Self {
+        Self { event_store, services }
     }
 
     /// Validates and handles the command onto the given state, and then passes the events to the store.
@@ -44,7 +65,7 @@ where
         mut aggregate_state: AggregateState<<E::Aggregate as Aggregate>::State>,
         command: <E::Aggregate as Aggregate>::Command,
     ) -> Result<Result<<E::Aggregate as Aggregate>::State, <E::Aggregate as Aggregate>::Error>, E::Error> {
-        match <E::Aggregate as Aggregate>::handle_command(aggregate_state.inner(), command) {
+        match <E::Aggregate as Aggregate>::handle_command(aggregate_state.inner(), command, &self.services).await {
             Err(domain_error) => Ok(Err(domain_error)),
             Ok(events) => match self.event_store.persist(&mut aggregate_state, events).await {
                 Ok(store_events) => Ok(Ok(aggregate_state

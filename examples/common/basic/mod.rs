@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use async_trait::async_trait;
 use esrs::Aggregate;
 
 pub mod event_handler;
@@ -8,14 +9,16 @@ pub mod view;
 #[derive(Clone)]
 pub struct BasicAggregate;
 
+#[async_trait]
 impl Aggregate for BasicAggregate {
     const NAME: &'static str = "basic";
     type State = ();
     type Command = BasicCommand;
     type Event = BasicEvent;
     type Error = BasicError;
+    type Services = ();
 
-    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+    async fn handle_command(_state: &Self::State, command: Self::Command, _services: &Self::Services) -> Result<Vec<Self::Event>, Self::Error> {
         if command.content.is_empty() {
             Err(BasicError::EmptyContent)
         } else {
